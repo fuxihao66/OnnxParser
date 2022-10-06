@@ -2,8 +2,28 @@
 #include "OnnxParser.h"
 #include "onnx.proto3.pb.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
+#include "node_attr_helper.h"
 using namespace ONNX_DML;
 
+
+class AttributeHelper {
+
+};
+
+std::unordered_map<unsigned int, unsigned int> g_protoTensorType2DmlType = {
+	{onnx::TensorProto_DataType::TensorProto_DataType_UNDEFINED,		TensorType::UKNOWN},
+	{onnx::TensorProto_DataType::TensorProto_DataType_FLOAT,			TensorType::FLOAT},
+	{onnx::TensorProto_DataType::TensorProto_DataType_UINT8,			TensorType::UINT8},
+	{onnx::TensorProto_DataType::TensorProto_DataType_INT8,				TensorType::INT8},
+	{onnx::TensorProto_DataType::TensorProto_DataType_UINT16,			TensorType::UINT16},
+	{onnx::TensorProto_DataType::TensorProto_DataType_INT16,			TensorType::INT16},
+	{onnx::TensorProto_DataType::TensorProto_DataType_INT32,			TensorType::INT32},
+	{onnx::TensorProto_DataType::TensorProto_DataType_INT64,			TensorType::INT64},
+	{onnx::TensorProto_DataType::TensorProto_DataType_FLOAT16,			TensorType::FLOAT16},
+	{onnx::TensorProto_DataType::TensorProto_DataType_DOUBLE,			TensorType::DOUBLE},
+	{onnx::TensorProto_DataType::TensorProto_DataType_UINT32,			TensorType::UINT32},
+	{onnx::TensorProto_DataType::TensorProto_DataType_UINT64,			TensorType::UINT64},
+};
 class OnnxParser {
 private:
 	onnx::ModelProto model;
@@ -37,10 +57,11 @@ public:
 OnnxParser::OnnxParser(google::protobuf::io::FileInputStream* fileStream) {
 	model.ParseFromZeroCopyStream(fileStream);
 
+	ParseGraphInitializers(); // need to be done first
+
 	ParseInputs();
 	ParseOutputs();
 	ParseGraphNodes();
-	ParseGraphInitializers();
 }
 
 int64_t OnnxParser::GetIrVersion() const {
@@ -77,9 +98,15 @@ unsigned int OnnxParser::GetWeights(char** ppWeights) const {
 }
 
 void OnnxParser::ParseInputs() {
+	const auto& graph = model.graph();
+
 	for (int i = 0; i < graph.input_size(); i++) {
 		const auto& input = graph.input(i);
 		const auto& shape = input.type().tensor_type().shape();
+
+		if (initializerMap.count(input.name)) { // some onnx file takes the initializer as input, which need to be excluded
+			continue;
+		}
 
 		auto tf = TensorInfo(input.name(), shape.dim_size());
 
@@ -91,6 +118,8 @@ void OnnxParser::ParseInputs() {
 	}
 }
 void OnnxParser::ParseOutputs() {
+	const auto& graph = model.graph();
+
 	for (int i = 0; i < graph.output_size(); i++) {
 		const auto& output = graph.output(i);
 		const auto& shape = output.type().tensor_type().shape();
@@ -176,9 +205,12 @@ void OnnxParser::ParseOutputs() {
 
 
 void OnnxParser::ParseGraphNodes() {
+	const auto& graph = model.graph();
 
 	for (int i = 0; i < graph.node_size(); i++) {
 		const auto& node = graph.node(i);
+
+		NodeAttrHelper helper(node); // parse attribute (eg: pad)
 
 		std::vector<std::string> inputNames(node.input_size());
 
@@ -191,7 +223,7 @@ void OnnxParser::ParseGraphNodes() {
 
 		auto outputName = node.output(0);
 
-		Op op(inputNames, outputName, node.name(), opType);
+		Op op(inputNames, outputName, node.name(), opType, i);
 		nodeMap[outputName] = op;
 	}
 }
@@ -200,8 +232,16 @@ void OnnxParser::ParseGraphInitializers() {
 	weightValues.resize(10000);
 	bindings.reserve(10000);
 	unsigned int index = 0;
+
+	const auto& graph = model.graph();
+
 	for (int i = 0; i < graph.initializer_size(); i++) {
 		const auto& initializer = graph.initializer(i);
+
+		if (g_protoTensorType2DmlType.count(initializer.data_type()) == 0)
+			throw std::exception("Unsupported data type");
+		TensorType tensorType = g_protoTensorType2DmlType[initializer.data_type()];
+
 
 		char* ptr;
 		unsigned int typeBytes;
@@ -260,7 +300,9 @@ void OnnxParser::ParseGraphInitializers() {
 		memcpy(weightValues.data() + stride, ptr, weightBytes);
 
 		// 
-		auto tf = InitializerTensorInfo(initializer.name(), initializer.dim_size(), initializer.data_type(), index);
+		
+		
+		auto tf = InitializerTensorInfo(initializer.name(), initializer.dim_size(), tensorType, index);
 		for (int n = 0; n < initializer.dim_size(); n++) {
 			tf.SetShape(n, initializer.dims(n));
 		}
