@@ -1,19 +1,16 @@
 
-#ifdef ONNXPARSER_EXPORTS
-#define ONNXPARSER_API __declspec(dllexport)
-#else
-#define ONNXPARSER_API __declspec(dllimport)
-#endif
 
+
+#include "Common.h"
 #include <memory>
 #include <iostream>
 #include <xstring>
 #include <fcntl.h>
 #include <map>
 #include <vector>
-#include <DirectML.h>
 
 
+// onnx.proto3
 //message TensorProto{
 //  enum DataType {
 //	UNDEFINED = 0;
@@ -46,118 +43,78 @@
 //	// Future extensions go here.
 //}
 
-extern "C" {
-	namespace ONNX_DML {
-		enum PERROR {
-			O_OK = 0,
-			O_NOTFOUND
-		};
-
-		// Same as dml 0x5100 definition
-		enum TensorType {
-			UKNOWN = 0,
-			FLOAT,   // Default type, need to be casted to fp16 when upload resource to GPU
-			FLOAT16,
-			UINT32,
-			UINT16,
-			UINT8,
-			INT32,
-			INT16,
-			INT8,
-			DOUBLE,
-			UINT64,
-			INT64,
-		};
-
-		struct TensorInfo {
-			TensorType tensorType;
-			std::string name;
-			unsigned int  dims;
-			uint32_t* shapes;   // TODO: different from onnx Shape definition (which is int64_t)
-
-			TensorInfo() dims(0), shapes(nullptr) {}
-			TensorInfo(const std::string& n, unsigned int d, TensorType t) {
-				dims = d;
-				name = n;
-				tensorType = t;
-				shapes = (int64_t*)malloc(d * sizeof(int64_t));
-			}
-
-			uint64_t GetSize() const {
-				uint64_t temp = 1;
-				for (int i = 0; i < dims; i++) {
-					temp *= shapes[i];
-				}
-			}
-			void SetShape(unsigned int dim, int64_t v) {
-				if (dim >= dims)
-					return;
-				shapes[dim] = v;
-			}
-			
-		};
-
-		
-		struct Op {
-			std::vector<std::string> inputNames;
-
-			std::vector<TensorInfo> inputInfo;
-
-			std::string outputName;
-			TensorInfo outputInfo;
-			/*std::optional<std::vector<int64_t>> inputShape;
-			std::optional<std::vector<int64_t>> outputShape;*/
-			std::string opName;
-			std::string opType;
-
-			/*TensorType inputTensorType;
-			TensorType outputTensorType;*/
-			unsigned int opIndex; // operator index inside network graph
-			Op() {}
-			Op(const std::vector<std::string>& input, const std::string& output, const std::string& name, const std::string& type, const unsigned int index) {
-				inputNames = input;
-				outputName = output;
-				opName = name;
-				opType = type;
-				opIndex = index;
-			}
-
-			void GetAttribute(const std::string& attriName, void* returnVal);
-		private:
-			class AttributeHelper;
-
-			std::unique_ptr<AttributeHelper> attriHelper;
-		};
-
-		struct InitializerTensorInfo : public TensorInfo {
-			
-			unsigned int index;
-
-			InitializerTensorInfo() : TensorInfo() {};
-			InitializerTensorInfo(const std::string& n, unsigned int d, TensorType t,  unsigned int i) 
-				: TensorInfo(n, d, t) {
-				
-				index = i;
-			};
-
-		};
-
-		struct BindingInfo {
-			unsigned int stride; // all initializer data is stored in a single buffer, use stride to indicate
-			unsigned int byteSize;
-			BindingInfo() = default;
-			BindingInfo(unsigned int s, unsigned int w, ) {
-				strid = s;
-				byteSize = w;
-			}
-		};
-		
-		
-		//ONNXPARSER_API PERROR CreateParserFromFile(const std::wstring& path_to_onnx, OnnxParser** pOnnxParser);
-		//ONNXPARSER_API PERROR GetNetworkInputs(const OnnxParser& pOnnxParser);
-		ONNXPARSER_API PERROR ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>&, std::map<std::string, TensorInfo>&, std::map<std::string, Op>&, std::map<std::string, InitializerTensorInfo>&, std::vector<BindingInfo>&, char** pweights, unsigned int& weightBytes);
-	}
 	
+namespace onnx {
+	class NodeProto;
+
+}
+
+
+namespace ONNX_PARSER {
+	class NodeAttrHelper;
+ 
+	struct ONNXPARSER_API TensorInfo {
+		TensorType tensorType;
+		std::string name;
+		unsigned int  dims;
+		std::vector<uint32_t> shapes;   // TODO: different from onnx Shape definition (which is int64_t)
+
+		TensorInfo() : dims(0) {}
+		TensorInfo(const std::string& n, unsigned int d, TensorType t);
+
+		uint64_t GetSize() const;
+		void SetShape(unsigned int dim, uint32_t v);
+
+	};
+	struct ONNXPARSER_API InitializerTensorInfo : public TensorInfo {
+
+		unsigned int index; // index + modelInputNum == graph tensor index (used for binding resources at runtime)
+
+		InitializerTensorInfo() : TensorInfo() {};
+		InitializerTensorInfo(const std::string& n, unsigned int d, TensorType t, unsigned int i);
+
+	};
+
+	struct ONNXPARSER_API Op {
+		std::vector<std::string> inputNames;
+
+		std::vector<TensorInfo> inputInfo;
+
+		std::string outputName;
+		TensorInfo outputInfo;
+		/*std::optional<std::vector<int64_t>> inputShape;
+		std::optional<std::vector<int64_t>> outputShape;*/
+		std::string opName;
+		std::string opType;
+
+		/*TensorType inputTensorType;
+		TensorType outputTensorType;*/
+		unsigned int opIndex; // operator index inside network graph
+		Op() = default;
+		Op(const onnx::NodeProto& node, unsigned int i);
+		Op(const std::vector<std::string>& input, const std::string& output, const std::string& name, const std::string& type, const unsigned int index);
+		bool GetAttribute(const std::string& attriName, AttributeType attriType, std::vector<char>& returnVal);
+		void AppendIOInfo(std::map<std::string, TensorInfo>&, std::map<std::string, TensorInfo>&, std::map<std::string, InitializerTensorInfo>&);
+
+	private:
+
+		std::unique_ptr<NodeAttrHelper> attriHelper;
+	};
+
+
+
+	struct ONNXPARSER_API BindingInfo {
+		unsigned int stride; // all initializer data is stored in a single buffer, use stride to indicate
+		unsigned int byteSize;
+		BindingInfo() = default;
+		BindingInfo(unsigned int s, unsigned int w);
+	};
+
+
+	//ONNXPARSER_API PERROR CreateParserFromFile(const std::wstring& path_to_onnx, OnnxParser** pOnnxParser);
+	//ONNXPARSER_API PERROR GetNetworkInputs(const OnnxParser& pOnnxParser);
+	ONNXPARSER_API PERROR ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo> graphInitializers, std::vector<BindingInfo>& bindings, char** pweights, unsigned int& weightBytes);
 
 
 }
+
