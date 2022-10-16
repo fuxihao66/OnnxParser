@@ -185,7 +185,6 @@ bool Op::GetAttribute(const std::string& attriName, AttributeType attriType, std
 
 	switch (attriType) {
 	case  AttributeType::UNDEFINED:
-	case  AttributeType::STRING:
 	case  AttributeType::STRINGS:
 	case  AttributeType::GRAPH:
 	case  AttributeType::GRAPHS:
@@ -195,49 +194,59 @@ bool Op::GetAttribute(const std::string& attriName, AttributeType attriType, std
 	case  AttributeType::TYPE_PROTOS:
 		assert(false);
 		return false;
-	case  AttributeType::FLOAT:
+	case  AttributeType::STRING:
 	{
-		float warppedFloatVal;
-		bool isOk = attriHelper->get(attriName, warppedFloatVal);
+		std::string stringVal;
+		bool isOk = attriHelper->get(attriName, stringVal);
 		if (!isOk)
 			return false;
-		CopyValToVectorChar(warppedFloatVal, returnVal);
+		returnVal.resize(stringVal.size());
+		memcpy(returnVal.data(), stringVal.c_str(), stringVal.size());
+		return true;
+	}	
+	case  AttributeType::FLOAT:
+	{
+		float floatVal;
+		bool isOk = attriHelper->get(attriName, floatVal);
+		if (!isOk)
+			return false;
+		CopyValToVectorChar(floatVal, returnVal);
 		return true;
 	}
 	case  AttributeType::FLOATS:
 	{
-		std::vector<float> warppedFloatsVal;
-		bool isOk = attriHelper->get(attriName, warppedFloatsVal);
+		std::vector<float> floatsVal;
+		bool isOk = attriHelper->get(attriName, floatsVal);
 		if (!isOk)
 			return false;
-		CopyVecToVectorChar(warppedFloatsVal, returnVal);
+		CopyVecToVectorChar(floatsVal, returnVal);
 		return true;
 	}
 	case  AttributeType::INT:
 	{
-		int warppedIntVal;
-		bool isOk = attriHelper->get(attriName, warppedIntVal);
+		int intVal;
+		bool isOk = attriHelper->get(attriName, intVal);
 		if (!isOk)
 			return false;
-		CopyValToVectorChar(warppedIntVal, returnVal);
+		CopyValToVectorChar(intVal, returnVal);
 		return true;
 	}
 	case  AttributeType::INTS:
 	{
-		std::vector<int> warppedIntsVal;
-		bool isOk = attriHelper->get(attriName, warppedIntsVal);
+		std::vector<int> intsVal;
+		bool isOk = attriHelper->get(attriName, intsVal);
 		if (!isOk)
 			return false;
-		CopyVecToVectorChar(warppedIntsVal, returnVal);
+		CopyVecToVectorChar(intsVal, returnVal);
 		return true;
 	}
 	case  AttributeType::TENSOR:
 	{	
-		onnx::TensorProto warppedTensorVal;
-		bool isOk = attriHelper->get(attriName, warppedTensorVal);
+		onnx::TensorProto tensorVal;
+		bool isOk = attriHelper->get(attriName, tensorVal);
 		if (!isOk)
 			return false;
-		CopyTensorToVectorChar(warppedTensorVal, returnVal);
+		CopyTensorToVectorChar(tensorVal, returnVal);
 		return true;
 	}
 	/*case AttributeType::SPARSE_TENSOR:
