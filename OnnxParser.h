@@ -78,10 +78,10 @@ namespace ONNX_PARSER {
 	struct ONNXPARSER_API Op {
 		std::vector<std::string> inputNames;
 
-		std::vector<TensorInfo> inputInfo;
+		// std::vector<TensorInfo> inputInfo;
 
 		std::string outputName;
-		TensorInfo outputInfo;
+		// TensorInfo outputInfo;
 		/*std::optional<std::vector<int64_t>> inputShape;
 		std::optional<std::vector<int64_t>> outputShape;*/
 		std::string opName;
@@ -94,7 +94,7 @@ namespace ONNX_PARSER {
 		Op(const onnx::NodeProto& node, unsigned int i);
 		Op(const std::vector<std::string>& input, const std::string& output, const std::string& name, const std::string& type, const unsigned int index);
 		bool GetAttribute(const std::string& attriName, AttributeType attriType, std::vector<char>& returnVal);
-		void AppendIOInfo(std::map<std::string, TensorInfo>&, std::map<std::string, TensorInfo>&, std::map<std::string, InitializerTensorInfo>&);
+		// void AppendIOInfo(std::map<std::string, TensorInfo>&, std::map<std::string, TensorInfo>&, std::map<std::string, InitializerTensorInfo>&);
 
 	private:
 
@@ -113,7 +113,7 @@ namespace ONNX_PARSER {
 
 	//ONNXPARSER_API PERROR CreateParserFromFile(const std::wstring& path_to_onnx, OnnxParser** pOnnxParser);
 	//ONNXPARSER_API PERROR GetNetworkInputs(const OnnxParser& pOnnxParser);
-	ONNXPARSER_API PERROR ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo> graphInitializers, std::vector<BindingInfo>& bindings, char** pweights, unsigned int& weightBytes);
+	ONNXPARSER_API PERROR ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo> graphInitializers, std::vector<BindingInfo>& bindings, std::vector<char>& weights, unsigned int& opsetVersion);
 
 
 }

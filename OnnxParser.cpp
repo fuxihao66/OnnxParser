@@ -50,9 +50,12 @@ Op::Op(const std::vector<std::string>& input, const std::string& output, const s
 Op::Op(const onnx::NodeProto& node, unsigned int index) {
 	attriHelper = std::make_unique<NodeAttrHelper>(node);
 
+
 	inputNames.resize(node.input_size());
 	// https://github.com/onnx/onnx/blob/main/docs/Operators.md
 	opType = node.op_type();
+
+	
 
 	for (int i = 0; i < node.input_size(); i++) {
 		inputNames[i] = node.input(i);
@@ -62,26 +65,29 @@ Op::Op(const onnx::NodeProto& node, unsigned int index) {
 	opName = node.name();
 	opIndex = index;
 }
+// get input and output tensor info of op node
+// void Op::AppendIOInfo(std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, InitializerTensorInfo>& initializerMap) {
+// 	// input and output tensor might appear in input output and initializer
+// 	// unsigned int numInput = inputNames.size();
+// 	// inputInfo.resize(numInput);
+// 	// for (int i = 0; i < numInput; i++) {
+// 	// 	if (inputMap.count(inputNames[i]))
+// 	// 		inputInfo[i] = inputMap[inputNames[i]];
+// 	// 	else if (initializerMap.count(inputNames[i]))
+// 	// 		inputInfo[i] = static_cast<TensorInfo>(initializerMap[inputNames[i]]);
+// 	// 	else
+// 	// 		assert(false);
+// 	// }
 
-void Op::AppendIOInfo(std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, InitializerTensorInfo>& initializerMap) {
-	unsigned int numInput = inputNames.size();
-	inputInfo.resize(numInput);
-	for (int i = 0; i < numInput; i++) {
-		if (inputMap.count(inputNames[i]))
-			inputInfo[i] = inputMap[inputNames[i]];
-		else if (initializerMap.count(inputNames[i]))
-			inputInfo[i] = static_cast<TensorInfo>(initializerMap[inputNames[i]]);
-		else
-			assert(false);
-	}
+// 	// if (outputMap.count(outputName))
+// 	// 	outputInfo = outputMap[outputName];
+// 	// else if (initializerMap.count(outputName))
+// 	// 	outputInfo = static_cast<TensorInfo>(initializerMap[outputName]);
+// 	// else
+// 	// 	assert(false);
 
-	if (outputMap.count(outputName))
-		outputInfo = outputMap[outputName];
-	else if (initializerMap.count(outputName))
-		outputInfo = static_cast<TensorInfo>(initializerMap[outputName]);
-	else
-		assert(false);
-}
+
+// }
 
 template <typename T>
 inline void CopyValToVectorChar(const T val, std::vector<char>& returnVal) {
@@ -276,6 +282,8 @@ public:
 	OnnxParser(google::protobuf::io::FileInputStream* fileStream);
 	int64_t GetIrVersion() const;
 	std::string GetProducerName() const;
+	int64_t GetOpsetVersion() const;
+
 	// structure
 	std::map<std::string, TensorInfo> GetInputs() const;
 	std::map<std::string, TensorInfo> GetOutputs() const;
@@ -283,7 +291,7 @@ public:
 	std::map<std::string, InitializerTensorInfo> GetGraphInitializers() const;
 	std::vector<BindingInfo> GetBindings() const;
 	// data
-	unsigned int GetWeights(char** ppWeights) const;
+	unsigned int GetWeights(std::vector<char>& Weights) const;
 
 };
 
@@ -305,6 +313,10 @@ std::string OnnxParser::GetProducerName() const {
 	return model.producer_name();
 }
 
+int64_t OnnxParser::GetOpsetVersion() const {
+	return model.opset_import().Get(0).version();
+}
+
 std::map<std::string, TensorInfo> OnnxParser::GetInputs() const {
 	return inputMap;
 }
@@ -324,10 +336,10 @@ std::map<std::string, InitializerTensorInfo> OnnxParser::GetGraphInitializers() 
 	return initializerMap;
 }
 // pass a pointer to weight pointer, copy data, and return data in byte size
-unsigned int OnnxParser::GetWeights(char** ppWeights) const {
-	free(*ppWeights);
-	*ppWeights = (char*)malloc(weightValues.size());
-	memcpy(*ppWeights, weightValues.data(), weightValues.size());
+unsigned int OnnxParser::GetWeights(std::vector<char>& Weights) const {
+	
+	Weights.resize(weightValues.size());
+	memcpy(Weights.data(), weightValues.data(), weightValues.size());
 	return weightValues.size();
 }
 
@@ -450,7 +462,7 @@ void OnnxParser::GetGraphNodes(std::map<std::string, Op>& nodeMap)  {
 
 		Op op(node, i);
 		
-		op.AppendIOInfo(inputMap, outputMap, initializerMap);
+		// op.AppendIOInfo(inputMap, outputMap, initializerMap);
 		
 		nodeMap[op.outputName] = std::move(op);
 	}
@@ -462,6 +474,8 @@ void OnnxParser::ParseGraphInitializers() {
 	unsigned int index = 0;
 
 	const auto& graph = model.graph();
+
+	
 
 	for (int i = 0; i < graph.initializer_size(); i++) {
 		const auto& initializer = graph.initializer(i);
@@ -574,10 +588,45 @@ void OnnxParser::ParseGraphInitializers() {
 		index += 1;
 	}
 
+	// interpret constant node as initializer
+	for (int i = 0; i < graph.node_size(); i++) {
+		const auto& node = graph.node(i);
+		if (node.op_type() == "Constant"){
+			auto attriHelper = NodeAttrHelper(node);
+			onnx::TensorProto const_data_tensor;
+			attriHelper.get("value", const_data);
+			std::vector<char> const_data;
+			CopyTensorToVectorChar(const_data_tensor, const_data);
+			
+
+			const unsigned int weightBytes = const_data.size();
+			if (stride + weightBytes > weightValues.size())
+				weightValues.resize((stride + weightBytes) * 2);
+
+			memcpy(weightValues.data() + stride, const_data.data(), weightBytes);
+
+			if (g_protoTensorType2DmlType.count(const_data_tensor.data_type()) == 0)
+				throw std::exception("Unsupported data type");
+			TensorType tensorType = g_protoTensorType2DmlType[const_data_tensor.data_type()];
+			tensorName = node.output(0);
+			auto tf = InitializerTensorInfo(tensorName, const_data_tensor.dims_size(), tensorType, index);
+			for (int n = 0; n < const_data_tensor.dims_size(); n++) {
+				tf.SetShape(n, const_data_tensor.dims(n));
+			}
+
+			initializerMap[tensorName] = tf;
+			bindings.push_back(BindingInfo(stride, weightBytes));
+			
+			stride += weightBytes;
+			index += 1;
+
+		}
+	}
+
 	weightValues.resize(stride);
 }
 
-ONNXPARSER_API PERROR ONNX_PARSER::ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo> graphInitializers, std::vector<BindingInfo>& bindings, char** pweights, unsigned int& weightBytes)
+ONNXPARSER_API PERROR ONNX_PARSER::ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo> graphInitializers, std::vector<BindingInfo>& bindings, std::vector<char>& weights, unsigned int& opsetVersion)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -610,7 +659,10 @@ ONNXPARSER_API PERROR ONNX_PARSER::ParseFromFile(const std::wstring& path_to_onn
 	parser->GetGraphNodes(graphNodes);
 	graphInitializers = parser->GetGraphInitializers();
 	bindings = parser->GetBindings();
-	weightBytes = parser->GetWeights(pweights);
+	parser->GetWeights(weights);
+	// weightBytes = parser->GetWeights(weights);
+
+	opsetVersion = static_cast<unsigned int>(parser->GetOpsetVersion());
 
 	delete(parser);
 
