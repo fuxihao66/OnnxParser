@@ -13,7 +13,6 @@ int main()
     std::vector<char> weights;
     unsigned int opsetVersion;
 
-    std::map<std::string, ONNX_PARSER::InitializerTensorInfo> k;
     //ONNX_PARSER::PERROR isOk = ONNX_PARSER::ParseFromFile(L"D:/candy-9.onnx", inputMap, outputMap, graphNodes, graphInitializers, bindings, weights, opsetVersion);
 
     ONNX_PARSER::OnnxParser* parser = new ONNX_PARSER::OnnxParser(L"D:/candy-9.onnx");
@@ -24,9 +23,10 @@ int main()
     bindings = parser->GetBindings();
     weights = parser->GetWeights();
     graphNodes = parser->GetGraphNodes();
-    
+    opsetVersion = parser->GetOpsetVersion();
     delete(parser);
-    std::cout << graphNodes.size();
+    //std::cout << graphNodes.size();
+    std::cout << opsetVersion;
     //std::cout << graphInitializers.size();
     /*if (isOk == ONNX_PARSER::PERROR::O_OK) {
         std::cout << "ok" << std::endl;
