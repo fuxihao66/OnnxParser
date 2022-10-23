@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.32802.440
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnnxParser", "OnnxParser.vcxproj", "{120D82D9-FB32-464B-A378-5144C3059399}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnnxParserTest", "OnnxParserTest\OnnxParserTest.vcxproj", "{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{120D82D9-FB32-464B-A378-5144C3059399}.Release|x64.Build.0 = Release|x64
 		{120D82D9-FB32-464B-A378-5144C3059399}.Release|x86.ActiveCfg = Release|Win32
 		{120D82D9-FB32-464B-A378-5144C3059399}.Release|x86.Build.0 = Release|Win32
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Debug|x64.ActiveCfg = Debug|x64
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Debug|x64.Build.0 = Debug|x64
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Debug|x86.ActiveCfg = Debug|Win32
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Debug|x86.Build.0 = Debug|Win32
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Release|x64.ActiveCfg = Release|x64
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Release|x64.Build.0 = Release|x64
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Release|x86.ActiveCfg = Release|Win32
+		{140B021F-0E6C-4AC0-ACB7-75A7FF941DC3}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

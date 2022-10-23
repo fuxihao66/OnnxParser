@@ -12,8 +12,9 @@
 #include "Common.h"
  
 namespace ONNX_PARSER {
-    class NodeAttrHelper {
+    class ONNXPARSER_API NodeAttrHelper {
     public:
+        NodeAttrHelper(const NodeAttrHelper& old);
         explicit NodeAttrHelper(onnx::NodeProto proto);
 
         /*float get(const std::string& key,
@@ -22,6 +23,7 @@ namespace ONNX_PARSER {
             const int def_val) const;*/
 
 
+        bool get(const std::string& key, std::string& ret) const;
         bool get(const std::string& key, float& ret) const;
         bool get(const std::string& key, int& ret) const;
         bool get(const std::string& key, std::vector<float>& ret) const;

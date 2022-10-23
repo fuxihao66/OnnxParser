@@ -15,8 +15,20 @@ namespace ONNX_PARSER{
 NodeAttrHelper::NodeAttrHelper(onnx::NodeProto proto)
     : node_(proto) {
 }
+NodeAttrHelper::NodeAttrHelper(const NodeAttrHelper& old) {
+    node_ = old.node_;
+}
 
 
+bool NodeAttrHelper::get(const std::string& key, std::string& ret) const {
+    for (const auto& attr : node_.attribute()) {
+        if (attr.name() == key) {
+            ret = attr.s();
+            return true;
+        }
+    }
+    return false;
+}
 
 
 bool NodeAttrHelper::get(const std::string& key, float& ret) const {
