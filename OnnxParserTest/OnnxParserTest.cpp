@@ -26,11 +26,13 @@ int main()
     opsetVersion = parser->GetOpsetVersion();
     delete(parser);
     //std::cout << graphNodes.size();
-    std::cout << opsetVersion;
+    //std::cout << opsetVersion;
     //std::cout << graphInitializers.size();
     /*if (isOk == ONNX_PARSER::PERROR::O_OK) {
         std::cout << "ok" << std::endl;
     }*/
+    ONNX_PARSER::TensorType type = ONNX_PARSER::OnnxTensorType2DmlTensorType(11);
+    std::cout << static_cast<unsigned int>(type) << std::endl;
     std::cout << "Hello World!\n";
 }
 

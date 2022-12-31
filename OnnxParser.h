@@ -159,6 +159,9 @@ namespace ONNX_PARSER {
 	//ONNXPARSER_API PERROR GetNetworkInputs(const OnnxParser& pOnnxParser);
 	ONNXPARSER_API PERROR ParseFromFile(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo>& graphInitializers, std::vector<BindingInfo>& bindings, std::vector<char>& weights, unsigned int& opsetVersion);
 
+	ONNXPARSER_API TensorType OnnxTensorType2DmlTensorType(unsigned int onnxTensorType);
+
+
 	/*ONNXPARSER_API PERROR TestFunction(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo>& graphInitializers, std::vector<BindingInfo>& bindings, std::vector<char>& weights, unsigned int& opsetVersion);*/
 }
 

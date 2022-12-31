@@ -334,7 +334,9 @@ std::unordered_map<unsigned int, TensorType> g_protoTensorType2DmlType = {
 	{onnx::TensorProto_DataType::TensorProto_DataType_UINT64,			TensorType::UINT64},
 };
 
-
+ONNXPARSER_API TensorType ONNX_PARSER::OnnxTensorType2DmlTensorType(unsigned int onnxTensorType){
+	return g_protoTensorType2DmlType[onnxTensorType];
+}
 
 OnnxParser::OnnxParser(const std::wstring& path_to_onnx) {//google::protobuf::io::FileInputStream* fileStream
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -425,6 +427,7 @@ void OnnxParser::ParseInputs() {
 			continue;
 		}
 		TensorType tensorType = g_protoTensorType2DmlType[input.type().tensor_type().elem_type()];
+
 
 		auto tf = TensorInfo(input.name(), shape.dim_size(), tensorType);
 
@@ -558,8 +561,10 @@ void OnnxParser::ParseGraphNodes() {
 			op.AppendAdditionAttribute(initializerMetaData[op.inputNames[1]], "pads");
 			if (op.inputNames.size() >= 3)
 				op.AppendAdditionAttribute(initializerMetaData[op.inputNames[2]], "constant_value");
-
 		}
+		// else if (node.op_type() == "Cast"){ // need cast type 
+		// 	op.AppendAdditionAttribute(initializerMetaData[op.inputNames[1]], "target_type");
+		// }
 
 		nodeMap[op.outputName] = op;// std::move(op);
 	}
