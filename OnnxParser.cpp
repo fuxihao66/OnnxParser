@@ -426,8 +426,9 @@ void OnnxParser::ParseInputs() {
 		if (initializerMap.count(input.name())) { // some onnx file takes the initializer as input, which need to be excluded
 			continue;
 		}
-		TensorType tensorType = g_protoTensorType2DmlType[input.type().tensor_type().elem_type()];
-
+		//TensorType tensorType = g_protoTensorType2DmlType[input.type().tensor_type().elem_type()];
+		TensorType tensorType = OnnxTensorType2DmlTensorType(input.type().tensor_type().elem_type());
+		
 
 		auto tf = TensorInfo(input.name(), shape.dim_size(), tensorType);
 
@@ -445,8 +446,9 @@ void OnnxParser::ParseOutputs() {
 		const auto& output = graph.output(i);
 		const auto& shape = output.type().tensor_type().shape();
 
-		TensorType tensorType = g_protoTensorType2DmlType[output.type().tensor_type().elem_type()];
-
+		//TensorType tensorType = g_protoTensorType2DmlType[output.type().tensor_type().elem_type()];
+		TensorType tensorType = OnnxTensorType2DmlTensorType(output.type().tensor_type().elem_type());
+		
 		auto tf = TensorInfo(output.name(), shape.dim_size(), tensorType);
 
 		for (int n = 0; n < shape.dim_size(); n++) {
@@ -622,8 +624,9 @@ void OnnxParser::ParseGraphInitializers() {
 
 		if (g_protoTensorType2DmlType.count(initializer.data_type()) == 0)
 			throw std::exception("Unsupported data type");
-		TensorType tensorType = g_protoTensorType2DmlType[initializer.data_type()];
-
+		//TensorType tensorType = g_protoTensorType2DmlType[initializer.data_type()];
+		TensorType tensorType = OnnxTensorType2DmlTensorType(initializer.data_type());
+		
 
 		const char* ptr = nullptr;
 		unsigned int typeBytes;
@@ -747,7 +750,10 @@ void OnnxParser::ParseGraphInitializers() {
 
 			if (g_protoTensorType2DmlType.count(const_data_tensor.data_type()) == 0)
 				throw std::exception("Unsupported data type");
-			TensorType tensorType = g_protoTensorType2DmlType[const_data_tensor.data_type()];
+			//TensorType tensorType = g_protoTensorType2DmlType[const_data_tensor.data_type()];
+			TensorType tensorType = OnnxTensorType2DmlTensorType(const_data_tensor.data_type());
+			
+
 			auto tensorName = node.output(0);
 			auto tf = InitializerTensorInfo(tensorName, const_data_tensor.dims_size(), tensorType, index);
 			for (int n = 0; n < const_data_tensor.dims_size(); n++) {
