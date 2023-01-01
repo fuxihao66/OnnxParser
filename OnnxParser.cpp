@@ -3,6 +3,7 @@
 #include "onnx.proto3.pb.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "node_attr_helper.h"
+#include "Float16Compressor.h"
 using namespace ONNX_PARSER;
 
 
@@ -334,9 +335,24 @@ std::unordered_map<unsigned int, TensorType> g_protoTensorType2DmlType = {
 	{onnx::TensorProto_DataType::TensorProto_DataType_UINT64,			TensorType::UINT64},
 };
 
-ONNXPARSER_API TensorType ONNX_PARSER::OnnxTensorType2DmlTensorType(unsigned int onnxTensorType){
-	return g_protoTensorType2DmlType[onnxTensorType];
+inline ONNX_PARSER::TensorType TensorType2DmlTensorType(const ONNX_PARSER::TensorType type) {
+	switch (type) {
+	case ONNX_PARSER::TensorType::UINT64:
+		return ONNX_PARSER::TensorType::UINT32;
+	case ONNX_PARSER::TensorType::INT64:
+		return ONNX_PARSER::TensorType::INT32;
+	case ONNX_PARSER::TensorType::FLOAT:
+	case ONNX_PARSER::TensorType::DOUBLE:
+		return ONNX_PARSER::TensorType::FLOAT16;
+	default:
+		return type;
+	}
 }
+// force 64 bit int to 32 bit, 64 bit and 32 bit float to 16 bit
+ONNXPARSER_API TensorType ONNX_PARSER::OnnxTensorType2DmlTensorType(unsigned int onnxTensorType){
+	return TensorType2DmlTensorType(g_protoTensorType2DmlType[onnxTensorType]);
+}
+
 
 OnnxParser::OnnxParser(const std::wstring& path_to_onnx) {//google::protobuf::io::FileInputStream* fileStream
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -629,91 +645,144 @@ void OnnxParser::ParseGraphInitializers() {
 		
 
 		const char* ptr = nullptr;
-		unsigned int typeBytes;
+		unsigned int oriTypeBytes;		// byte size for onnx 
+		unsigned int convertedTypeBytes; // byte size for dml tensor
 		// reference: onnx-runtime/onnx_converter.cc
 		if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_FLOAT) {
 			ptr = initializer.float_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.float_data().data());
-			typeBytes = 4;
+			oriTypeBytes = 4;
+			convertedTypeBytes = 2;
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_FLOAT16) { // according to onnx.proto3
 			ptr = initializer.int32_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int32_data().data());
-			typeBytes = 2;
+			oriTypeBytes = 2;
+			convertedTypeBytes = 2;
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_DOUBLE) {
 			ptr = initializer.double_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.double_data().data());
-			typeBytes = 8;
+			oriTypeBytes = 8;
+			convertedTypeBytes = 2;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT8) {
 			ptr = initializer.int32_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int32_data().data());
-			typeBytes = 1;
+			oriTypeBytes = 1;
+			convertedTypeBytes = 1;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT16) {
 			ptr = initializer.int64_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int32_data().data());
-			typeBytes = 2;
+			oriTypeBytes = 2;
+			convertedTypeBytes = 2;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT32) {
 			ptr = initializer.uint64_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.uint64_data().data());
-			typeBytes = 4;
+			oriTypeBytes = 4;
+			convertedTypeBytes = 4;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT64) {
 			ptr = initializer.uint64_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.uint64_data().data());
-			typeBytes = 8;
+			oriTypeBytes = 8;
+			convertedTypeBytes = 4;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT8) {
 			ptr = initializer.int32_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int32_data().data());
-			typeBytes = 1;
+			oriTypeBytes = 1;
+			convertedTypeBytes = 1;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT16) {
 			ptr = initializer.int64_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int32_data().data());
-			typeBytes = 2;
+			oriTypeBytes = 2;
+			convertedTypeBytes = 2;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT32) {
 			ptr = initializer.int32_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int32_data().data());
-			typeBytes = 4;
+			oriTypeBytes = 4;
+			convertedTypeBytes = 4;
+
 		}
 		else if (initializer.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT64) {
 			ptr = initializer.int64_data().empty()
 				? reinterpret_cast<const char*>(initializer.raw_data().data())
 				: reinterpret_cast<const char*>(initializer.int64_data().data());
-			typeBytes = 8;
+			oriTypeBytes = 8;
+			convertedTypeBytes = 4;
+
 		}
 		else {
 			assert(0);
 		}
+
+
+
 
 		auto ComputeWeightByteSize = [&]() {
 			unsigned int arraySize = 1;
 			for (int n = 0; n < initializer.dims_size(); n++) {
 				arraySize *= initializer.dims(n);
 			}
-			return arraySize * typeBytes;
+			return arraySize * convertedTypeBytes;
 		};
 
 		const unsigned int weightBytes = ComputeWeightByteSize();
 		if (stride + weightBytes > weightValues.size())
 			weightValues.resize((stride + weightBytes) * 2);
 
-		memcpy(weightValues.data() + stride, ptr, weightBytes);
+
+		std::vector<char> dmlTensorData; // convert 64bit int to 32bit, 64bit/32bit float to half
+		{
+			dmlTensorData.resize(weightBytes);
+			if (convertedTypeBytes == 4 && convertedTypeBytes != oriTypeBytes) { // int or uint
+				for (int i = 0; i < convertedTypeBytes / 4; i++) {
+					char val[4];
+					if (tensorType == TensorType::INT32) {
+						int convertedVal = static_cast<int>(*(ptr + i));
+						memcpy(val, &convertedVal, 4);
+					}
+					else {
+						unsigned int convertedVal = static_cast<unsigned int>(*(ptr + i));
+						memcpy(val, &convertedVal, 4);
+					}
+					memcpy(dmlTensorData.data() + i, val, 4);
+				}
+			}
+			else if (convertedTypeBytes == 2 && convertedTypeBytes != oriTypeBytes) { // float
+				for (int i = 0; i < convertedTypeBytes / 2; i++) {
+					uint16_t compressedData = Float16Compressor::compress((float)(*(ptr + i)));
+					memcpy(dmlTensorData.data() + i, &compressedData, 2);
+				}
+			}
+			else {
+				memcpy(dmlTensorData.data(), ptr, weightBytes);
+			}
+		}
+		//memcpy(weightValues.data() + stride, ptr, weightBytes);
+		memcpy(weightValues.data() + stride, dmlTensorData.data(), weightBytes);
 
 		// 
 		
@@ -741,17 +810,68 @@ void OnnxParser::ParseGraphInitializers() {
 			std::vector<char> const_data;
 			CopyTensorToVectorChar(const_data_tensor, const_data);
 			
-
-			const unsigned int weightBytes = const_data.size();
-			if (stride + weightBytes > weightValues.size())
-				weightValues.resize((stride + weightBytes) * 2);
-
-			memcpy(weightValues.data() + stride, const_data.data(), weightBytes);
-
 			if (g_protoTensorType2DmlType.count(const_data_tensor.data_type()) == 0)
 				throw std::exception("Unsupported data type");
 			//TensorType tensorType = g_protoTensorType2DmlType[const_data_tensor.data_type()];
 			TensorType tensorType = OnnxTensorType2DmlTensorType(const_data_tensor.data_type());
+
+			// convert const data: 64 bit int to 32 bit, float/double to 16 bit float
+			std::vector<char> convertedConstData;
+			{
+				if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT64) {
+					convertedConstData.resize(const_data.size() / 2);
+					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+						uint64_t originalVal;
+						uint32_t convertedVal;
+						memcpy(&originalVal, const_data.data() + 8 * i, sizeof(originalVal));
+						convertedVal = static_cast<uint32_t>(originalVal);
+						memcpy(convertedConstData.data() + 4 * i, &convertedVal, sizeof(convertedVal));
+					}
+				}
+				else if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT64) {
+					convertedConstData.resize(const_data.size() / 2);
+					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+						int64_t originalVal;
+						int32_t convertedVal;
+						memcpy(&originalVal, const_data.data() + 8 * i, sizeof(originalVal));
+						convertedVal = static_cast<int32_t>(originalVal);
+						memcpy(convertedConstData.data() + 4 * i, &convertedVal, sizeof(convertedVal));
+					}
+				}
+				else if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_DOUBLE) {
+					convertedConstData.resize(const_data.size() / 4);
+					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+						double originalVal;
+						uint16_t convertedVal;
+						memcpy(&originalVal, const_data.data() + 8 * i, sizeof(originalVal));
+						convertedVal = Float16Compressor::compress(static_cast<float>(originalVal));
+						memcpy(convertedConstData.data() + 2 * i, &convertedVal, sizeof(convertedVal));
+					}
+				}
+				else if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_FLOAT) {
+					convertedConstData.resize(const_data.size() / 2);
+					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+						float originalVal;
+						uint16_t convertedVal;
+						memcpy(&originalVal, const_data.data() + 4 * i, sizeof(originalVal));
+						convertedVal = Float16Compressor::compress(originalVal);
+						memcpy(convertedConstData.data() + 2 * i, &convertedVal, sizeof(convertedVal));
+					}
+				}
+				else {
+					convertedConstData.resize(const_data.size());
+					memcpy(convertedConstData.data(), const_data.data(), convertedConstData.size());
+				}
+			}
+
+
+			const unsigned int weightBytes = convertedConstData.size();
+			if (stride + weightBytes > weightValues.size())
+				weightValues.resize((stride + weightBytes) * 2);
+
+			memcpy(weightValues.data() + stride, convertedConstData.data(), weightBytes);
+
+			
 			
 
 			auto tensorName = node.output(0);

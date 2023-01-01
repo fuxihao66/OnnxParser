@@ -25,6 +25,12 @@ int main()
     graphNodes = parser->GetGraphNodes();
     opsetVersion = parser->GetOpsetVersion();
     delete(parser);
+
+    for (auto it = inputMap.begin(); it != inputMap.end(); it++) {
+        std::cout << it->first << std::endl;
+
+    }
+
     //std::cout << graphNodes.size();
     //std::cout << opsetVersion;
     //std::cout << graphInitializers.size();
