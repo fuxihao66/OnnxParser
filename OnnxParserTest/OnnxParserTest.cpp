@@ -2,6 +2,7 @@
 //
 
 #include <iostream>
+#include <optional>
 #include "../OnnxParser.h"
 int main()
 {
@@ -26,9 +27,41 @@ int main()
     opsetVersion = parser->GetOpsetVersion();
     delete(parser);
 
-    for (auto it = inputMap.begin(); it != inputMap.end(); it++) {
-        std::cout << it->first << std::endl;
+    /*for (auto it = graphInitializers.begin(); it != graphInitializers.end(); it++) {
+        auto& initializer = it->second;
+        std::cout << initializer.name << std::endl;
+    }*/
 
+    for (auto it = graphNodes.begin(); it != graphNodes.end(); it++) {
+        std::cout << it->first << std::endl;
+        auto& node = it->second;
+        std::cout << node.opType << std::endl;
+
+        /*if (node.opType == "Pad") {
+            std::vector<char> tempAttri;
+
+            bool hasMode = node.GetAttribute("mode", ONNX_PARSER::AttributeType::STRING, tempAttri);
+            std::string mode;
+
+            if (hasMode) {
+                mode.resize(tempAttri.size());
+                memcpy((void*)(mode.data()), tempAttri.data(), tempAttri.size());
+            }
+
+        }*/
+        if (node.opType == "Slice") {
+            std::vector<char> temp;
+            std::vector<int> axes;
+            ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("axes", ONNX_PARSER::AttributeType::INTS);  // 和之前一样，还是在dll里面分配了资源，然后在exe里面释放了
+            //if (result != std::nullopt) {
+            //    //const std::vector<char>& axis = (*result);
+            //}
+            /*if (hasAxis) {
+                axes.resize(temp.size() / 4);
+                memcpy(axes.data(), temp.data(), temp.size());
+            }*/
+                
+        }
     }
 
     //std::cout << graphNodes.size();
@@ -37,8 +70,8 @@ int main()
     /*if (isOk == ONNX_PARSER::PERROR::O_OK) {
         std::cout << "ok" << std::endl;
     }*/
-    ONNX_PARSER::TensorType type = ONNX_PARSER::OnnxTensorType2DmlTensorType(11);
-    std::cout << static_cast<unsigned int>(type) << std::endl;
+    /*ONNX_PARSER::TensorType type = ONNX_PARSER::OnnxTensorType2DmlTensorType(11);
+    std::cout << static_cast<unsigned int>(type) << std::endl;*/
     std::cout << "Hello World!\n";
 }
 

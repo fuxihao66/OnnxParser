@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <map>
 #include <vector>
-
+#include <optional>
 
 // onnx.proto3
 //message TensorProto{
@@ -75,7 +75,24 @@ namespace ONNX_PARSER {
 		InitializerTensorInfo(const std::string& n, unsigned int d, TensorType t, unsigned int i);
 
 	};
-
+	class ONNXPARSER_API AttributeValWrapper {
+	public:
+		AttributeValWrapper()
+			: valid(false) {}
+		AttributeValWrapper(const std::vector<char>& input) {
+			valid = true;
+			value = input;
+		}
+		bool isValid() {
+			return valid;
+		}
+		const std::vector<char>& getValue() {
+			return value;
+		}
+	private:
+		std::vector<char> value;
+		bool valid;
+	};
 	struct ONNXPARSER_API Op {
 		std::vector<std::string> inputNames;
 
@@ -95,7 +112,10 @@ namespace ONNX_PARSER {
 		Op(const onnx::NodeProto& node, unsigned int i);
 		Op(const std::vector<std::string>& input, const std::string& output, const std::string& name, const std::string& type, const unsigned int index);
 		~Op();
-		bool GetAttribute(const std::string& attriName, AttributeType attriType, std::vector<char>& returnVal);
+		// TODO: cannot allocate std::vector in dll and release in exe (for MT built dll and MD built exe)
+		//bool GetAttribute(const std::string& attriName, AttributeType attriType, std::vector<char>& returnVal);
+		// use AttributeValWrapper to wrap std::vector to avoid release memory in exe
+		AttributeValWrapper GetAttribute(const std::string& attriName, AttributeType attriType);
 		// void AppendIOInfo(std::map<std::string, TensorInfo>&, std::map<std::string, TensorInfo>&, std::map<std::string, InitializerTensorInfo>&);
 		void AppendAdditionAttribute(const onnx::TensorProto& attriTensor, const  std::string& name);
 		/*Op& operator = (Op&& op);
@@ -117,6 +137,8 @@ namespace ONNX_PARSER {
 		BindingInfo() = default;
 		BindingInfo(unsigned int s, unsigned int w);
 	};
+
+	
 
 	class ONNXPARSER_API OnnxParser {
 	private:

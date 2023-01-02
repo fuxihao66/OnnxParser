@@ -236,8 +236,12 @@ inline void CopyTensorToVectorChar(const onnx::TensorProto& tensor, std::vector<
 
 	memcpy(returnVal.data(), ptr, byteSize);
 }
+
+
 // pimpl
-bool Op::GetAttribute(const std::string& attriName, AttributeType attriType, std::vector<char>& returnVal) {
+AttributeValWrapper Op::GetAttribute(const std::string& attriName, AttributeType attriType){
+
+	std::vector<char> returnVal;
 
 	switch (attriType) {
 	case  AttributeType::UNDEFINED:
@@ -249,52 +253,54 @@ bool Op::GetAttribute(const std::string& attriName, AttributeType attriType, std
 	case  AttributeType::TYPE_PROTO:
 	case  AttributeType::TYPE_PROTOS:
 		assert(false);
-		return false;
+		return AttributeValWrapper();
 	case  AttributeType::STRING:
 	{
 		std::string stringVal;
 		bool isOk = attriHelper->get(attriName, stringVal);
 		if (!isOk)
-			return false;
+			return AttributeValWrapper();
 		returnVal.resize(stringVal.size());
 		memcpy(returnVal.data(), stringVal.c_str(), stringVal.size());
-		return true;
+		return AttributeValWrapper(returnVal);
 	}	
 	case  AttributeType::FLOAT:
 	{
 		float floatVal;
 		bool isOk = attriHelper->get(attriName, floatVal);
 		if (!isOk)
-			return false;
+			return AttributeValWrapper();
 		CopyValToVectorChar(floatVal, returnVal);
-		return true;
+		return AttributeValWrapper(returnVal);
 	}
 	case  AttributeType::FLOATS:
 	{
 		std::vector<float> floatsVal;
 		bool isOk = attriHelper->get(attriName, floatsVal);
 		if (!isOk)
-			return false;
+			return AttributeValWrapper();
 		CopyVecToVectorChar(floatsVal, returnVal);
-		return true;
+		return AttributeValWrapper(returnVal);
 	}
 	case  AttributeType::INT:
 	{
 		int intVal;
 		bool isOk = attriHelper->get(attriName, intVal);
 		if (!isOk)
-			return false;
+			return AttributeValWrapper();
 		CopyValToVectorChar(intVal, returnVal);
-		return true;
+		return AttributeValWrapper(returnVal);
+
 	}
 	case  AttributeType::INTS:
 	{
 		std::vector<int> intsVal;
 		bool isOk = attriHelper->get(attriName, intsVal);
 		if (!isOk)
-			return false;
+			return AttributeValWrapper();
 		CopyVecToVectorChar(intsVal, returnVal);
-		return true;
+		return AttributeValWrapper(returnVal);
+
 	}
 	case  AttributeType::TENSOR:
 	{	
@@ -306,16 +312,17 @@ bool Op::GetAttribute(const std::string& attriName, AttributeType attriType, std
 				tensorVal = additionalAtrribute[attriName];
 			}
 			else
-				return false;
+				return AttributeValWrapper();
 		}
 		CopyTensorToVectorChar(tensorVal, returnVal);
-		return true;
+		return AttributeValWrapper(returnVal);
+
 	}
 	/*case AttributeType::SPARSE_TENSOR:
 		auto warppedSparseTensorVal = attriHelper->get<attriType, onnx::SparseTensorProto>(attriName);*/
 	default:
 		assert(false);
-		return false;
+		return AttributeValWrapper();
 	}
 }
 
