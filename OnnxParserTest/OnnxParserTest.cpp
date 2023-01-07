@@ -32,37 +32,75 @@ int main()
         std::cout << initializer.name << std::endl;
     }*/
 
+    //std::map<std::string, int> constantName;
+    //for (auto it = graphNodes.begin(); it != graphNodes.end(); it++) {
+    //    /*std::cout << it->first << std::endl;*/
+    //    auto& node = it->second;
+    //    
+    //    
+    //    //std::cout << node.opType << std::endl;
+
+    //    /*if (node.opType == "Pad") {
+    //        std::vector<char> tempAttri;
+
+    //        bool hasMode = node.GetAttribute("mode", ONNX_PARSER::AttributeType::STRING, tempAttri);
+    //        std::string mode;
+
+    //        if (hasMode) {
+    //            mode.resize(tempAttri.size());
+    //            memcpy((void*)(mode.data()), tempAttri.data(), tempAttri.size());
+    //        }
+
+    //    }*/
+    //    if (node.opType == "Constant") {
+    //        //std::vector<char> temp;
+    //        //std::vector<int> axes;
+    //        //ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("axes", ONNX_PARSER::AttributeType::INTS);  // ∫Õ÷Æ«∞“ª—˘£¨ªπ «‘⁄dll¿ÅEÊ∑÷≈‰¡À◊ ‘¥£¨»ª∫Û‘⁄exe¿ÅEÊ Õ∑≈¡À
+    //        //if (result != std::nullopt) {
+    //        //    //const std::vector<char>& axis = (*result);
+    //        //}
+    //        /*if (hasAxis) {
+    //            axes.resize(temp.size() / 4);
+    //            memcpy(axes.data(), temp.data(), temp.size());
+    //        }*/
+    //        constantName[node.outputName] = 1;
+    //        //std::cout << node.outputName << std::endl;
+    //    }
+    //}
     for (auto it = graphNodes.begin(); it != graphNodes.end(); it++) {
-        std::cout << it->first << std::endl;
+        /*std::cout << it->first << std::endl;*/
         auto& node = it->second;
-        std::cout << node.opType << std::endl;
 
-        /*if (node.opType == "Pad") {
-            std::vector<char> tempAttri;
+        for (auto& input : node.inputNames) {
+            /*if (constantName.count(input)) {
 
-            bool hasMode = node.GetAttribute("mode", ONNX_PARSER::AttributeType::STRING, tempAttri);
-            std::string mode;
-
-            if (hasMode) {
-                mode.resize(tempAttri.size());
-                memcpy((void*)(mode.data()), tempAttri.data(), tempAttri.size());
-            }
-
-        }*/
-        if (node.opType == "Slice") {
-            std::vector<char> temp;
-            std::vector<int> axes;
-            ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("axes", ONNX_PARSER::AttributeType::INTS);  // ∫Õ÷Æ«∞“ª—˘£¨ªπ «‘⁄dll¿Ô√Ê∑÷≈‰¡À◊ ‘¥£¨»ª∫Û‘⁄exe¿Ô√Ê Õ∑≈¡À
-            //if (result != std::nullopt) {
-            //    //const std::vector<char>& axis = (*result);
-            //}
-            /*if (hasAxis) {
-                axes.resize(temp.size() / 4);
-                memcpy(axes.data(), temp.data(), temp.size());
+                std::cout << node.opType << std::endl;
             }*/
-                
+            if (input == "132" || input == "161") {
+                std::cout << "[";
+                for (auto& input : node.inputNames) {
+                    std::cout << input << " ";
+                }
+                std::cout << "]" << std::endl;
+            }
         }
     }
+    
+
+    /*for (auto it = graphInitializers.begin(); it != graphInitializers.end(); it++) {
+        if (constantName.count(it->first) > 0) {
+            auto& initializer = it->second;
+            std::cout << it->first << " [";
+            for (int i = 0; i < initializer.dims; i++) {
+                std::cout << initializer.shapes[i] << " ";
+
+            }
+            std::cout << "]" << std::endl;
+
+        }
+    }*/
+
+
 
     //std::cout << graphNodes.size();
     //std::cout << opsetVersion;

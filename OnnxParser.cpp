@@ -765,7 +765,7 @@ void OnnxParser::ParseGraphInitializers() {
 		{
 			dmlTensorData.resize(weightBytes);
 			if (convertedTypeBytes == 4 && convertedTypeBytes != oriTypeBytes) { // int or uint
-				for (int i = 0; i < convertedTypeBytes / 4; i++) {
+				for (int i = 0; i < convertedTypeBytes / sizeof(int); i++) {
 					char val[4];
 					if (tensorType == TensorType::INT32) {
 						int convertedVal = static_cast<int>(*(ptr + i));
@@ -779,7 +779,7 @@ void OnnxParser::ParseGraphInitializers() {
 				}
 			}
 			else if (convertedTypeBytes == 2 && convertedTypeBytes != oriTypeBytes) { // float
-				for (int i = 0; i < convertedTypeBytes / 2; i++) {
+				for (int i = 0; i < convertedTypeBytes / sizeof(uint16_t); i++) {
 					uint16_t compressedData = Float16Compressor::compress((float)(*(ptr + i)));
 					memcpy(dmlTensorData.data() + i, &compressedData, 2);
 				}
@@ -827,7 +827,7 @@ void OnnxParser::ParseGraphInitializers() {
 			{
 				if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT64) {
 					convertedConstData.resize(const_data.size() / 2);
-					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+					for (int i = 0; i < convertedConstData.size() / sizeof(unsigned int); i++) {
 						uint64_t originalVal;
 						uint32_t convertedVal;
 						memcpy(&originalVal, const_data.data() + 8 * i, sizeof(originalVal));
@@ -837,17 +837,20 @@ void OnnxParser::ParseGraphInitializers() {
 				}
 				else if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT64) {
 					convertedConstData.resize(const_data.size() / 2);
-					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+
+					for (int i = 0; i < convertedConstData.size() / sizeof(int); i++) {
 						int64_t originalVal;
 						int32_t convertedVal;
 						memcpy(&originalVal, const_data.data() + 8 * i, sizeof(originalVal));
 						convertedVal = static_cast<int32_t>(originalVal);
 						memcpy(convertedConstData.data() + 4 * i, &convertedVal, sizeof(convertedVal));
+
 					}
+					
 				}
 				else if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_DOUBLE) {
-					convertedConstData.resize(const_data.size() / 4);
-					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+					convertedConstData.resize(const_data.size() / 4); // half is 1/4 of double
+					for (int i = 0; i < convertedConstData.size() / sizeof(uint16_t); i++) {
 						double originalVal;
 						uint16_t convertedVal;
 						memcpy(&originalVal, const_data.data() + 8 * i, sizeof(originalVal));
@@ -856,13 +859,15 @@ void OnnxParser::ParseGraphInitializers() {
 					}
 				}
 				else if (const_data_tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_FLOAT) {
-					convertedConstData.resize(const_data.size() / 2);
-					for (int i = 0; i < convertedConstData.size() / 4; i++) {
+					convertedConstData.resize(const_data.size() / 2); // half is 1/2 of double
+					for (int i = 0; i < convertedConstData.size() / sizeof(uint16_t); i++) {
 						float originalVal;
 						uint16_t convertedVal;
 						memcpy(&originalVal, const_data.data() + 4 * i, sizeof(originalVal));
 						convertedVal = Float16Compressor::compress(originalVal);
 						memcpy(convertedConstData.data() + 2 * i, &convertedVal, sizeof(convertedVal));
+
+						
 					}
 				}
 				else {
@@ -878,14 +883,20 @@ void OnnxParser::ParseGraphInitializers() {
 
 			memcpy(weightValues.data() + stride, convertedConstData.data(), weightBytes);
 
-			
-			
+			unsigned int dimSize = const_data_tensor.dims_size();
+			if (const_data_tensor.dims_size() == 0)// scalar
+				dimSize = 1;
 
 			auto tensorName = node.output(0);
-			auto tf = InitializerTensorInfo(tensorName, const_data_tensor.dims_size(), tensorType, index);
+
+
+			auto tf = InitializerTensorInfo(tensorName, dimSize, tensorType, index);
 			for (int n = 0; n < const_data_tensor.dims_size(); n++) {
 				tf.SetShape(n, const_data_tensor.dims(n));
 			}
+			if (const_data_tensor.dims_size() == 0)// scalar
+				tf.SetShape(0, 1);
+
 
 			initializerMap[tensorName] = tf;
 			bindings.push_back(BindingInfo(stride, weightBytes));
