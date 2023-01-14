@@ -183,7 +183,7 @@ namespace ONNX_PARSER {
 
 	ONNXPARSER_API TensorType OnnxTensorType2DmlTensorType(unsigned int onnxTensorType);
 
-
+	ONNXPARSER_API unsigned int GetAlignedBytes(unsigned int requeiredBytes);
 	/*ONNXPARSER_API PERROR TestFunction(const std::wstring& path_to_onnx, std::map<std::string, TensorInfo>& inputMap, std::map<std::string, TensorInfo>& outputMap, std::map<std::string, Op>& graphNodes, std::map<std::string, InitializerTensorInfo>& graphInitializers, std::vector<BindingInfo>& bindings, std::vector<char>& weights, unsigned int& opsetVersion);*/
 }
 

@@ -360,6 +360,11 @@ ONNXPARSER_API TensorType ONNX_PARSER::OnnxTensorType2DmlTensorType(unsigned int
 	return TensorType2DmlTensorType(g_protoTensorType2DmlType[onnxTensorType]);
 }
 
+// binding table requires 16 bytes alignment
+ONNXPARSER_API unsigned int ONNX_PARSER::GetAlignedBytes(unsigned int requeiredBytes) {
+	return static_cast<unsigned int>(ceil(requeiredBytes / 16.f)) * 16;
+}
+
 
 OnnxParser::OnnxParser(const std::wstring& path_to_onnx) {//google::protobuf::io::FileInputStream* fileStream
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -757,8 +762,9 @@ void OnnxParser::ParseGraphInitializers() {
 		};
 
 		const unsigned int weightBytes = ComputeWeightByteSize();
-		if (stride + weightBytes > weightValues.size())
-			weightValues.resize((stride + weightBytes) * 2);
+		const unsigned int alignedBytes = GetAlignedBytes(weightBytes);
+		if (stride + alignedBytes > weightValues.size())
+			weightValues.resize((stride + alignedBytes) * 2);
 
 
 		std::vector<char> dmlTensorData; // convert 64bit int to 32bit, 64bit/32bit float to half
@@ -803,7 +809,7 @@ void OnnxParser::ParseGraphInitializers() {
 		bindings.push_back(BindingInfo(stride, weightBytes));
 
 		
-		stride += weightBytes;
+		stride += alignedBytes;
 		index += 1;
 	}
 
@@ -878,8 +884,9 @@ void OnnxParser::ParseGraphInitializers() {
 
 
 			const unsigned int weightBytes = convertedConstData.size();
-			if (stride + weightBytes > weightValues.size())
-				weightValues.resize((stride + weightBytes) * 2);
+			const unsigned int alignedBytes = GetAlignedBytes(weightBytes);
+			if (stride + alignedBytes > weightValues.size())
+				weightValues.resize((stride + alignedBytes) * 2);
 
 			memcpy(weightValues.data() + stride, convertedConstData.data(), weightBytes);
 
@@ -901,7 +908,7 @@ void OnnxParser::ParseGraphInitializers() {
 			initializerMap[tensorName] = tf;
 			bindings.push_back(BindingInfo(stride, weightBytes));
 			
-			stride += weightBytes;
+			stride += alignedBytes;
 			index += 1;
 
 		}
