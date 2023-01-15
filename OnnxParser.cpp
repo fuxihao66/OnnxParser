@@ -904,7 +904,7 @@ void OnnxParser::ParseGraphInitializers() {
 			if (const_data_tensor.dims_size() == 0)// scalar
 				tf.SetShape(0, 1);
 
-
+			initializerMetaData[tensorName] = const_data_tensor;// stored for graph node parsing
 			initializerMap[tensorName] = tf;
 			bindings.push_back(BindingInfo(stride, weightBytes));
 			
