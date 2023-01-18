@@ -82,6 +82,12 @@ namespace ONNX_PARSER {
 		AttributeValWrapper(const std::vector<char>& input) {
 			valid = true;
 			value = input;
+			byteStride = 0;
+		}
+		AttributeValWrapper(const std::vector<char>& input, const unsigned int s) {
+			valid = true;
+			value = input;
+			setByteStride(s);
 		}
 		bool isValid() {
 			return valid;
@@ -89,8 +95,15 @@ namespace ONNX_PARSER {
 		const std::vector<char>& getValue() {
 			return value;
 		}
+		void setByteStride(const unsigned int s) {
+			byteStride = s;
+		}
+		unsigned int getByteStride() {
+			return byteStride;
+		}
 	private:
 		std::vector<char> value;
+		unsigned int byteStride;// used for tensor attribute
 		bool valid;
 	};
 	struct ONNXPARSER_API Op {

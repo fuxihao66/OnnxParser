@@ -159,14 +159,12 @@ inline void CopyVecToVectorChar(const std::vector<T>& valVec, std::vector<char>&
 	memcpy(returnVal.data(), valVec.data(), length);
 }
 
-inline void CopyTensorToVectorChar(const onnx::TensorProto& tensor, std::vector<char>& returnVal) {
+inline unsigned int CopyTensorToVectorChar(const onnx::TensorProto& tensor, std::vector<char>& returnVal) {
 	const char* ptr = nullptr;
 	unsigned int byteSize = 1;
 	
 
-	for (int i = 0; i < tensor.dims_size(); i++) {
-		byteSize *= tensor.dims(i);
-	}
+	
 	if (tensor.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_FLOAT) {
 		ptr = tensor.float_data().empty()
 			? reinterpret_cast<const char*>(tensor.raw_data().data())
@@ -232,9 +230,17 @@ inline void CopyTensorToVectorChar(const onnx::TensorProto& tensor, std::vector<
 		byteSize *= 8;
 	}
 
+	unsigned int byteStride = byteSize;
+
+	for (int i = 0; i < tensor.dims_size(); i++) {
+		byteSize *= tensor.dims(i);
+	}
+
 	returnVal.resize(byteSize);
 
 	memcpy(returnVal.data(), ptr, byteSize);
+
+	return byteStride;
 }
 
 
@@ -314,8 +320,9 @@ AttributeValWrapper Op::GetAttribute(const std::string& attriName, AttributeType
 			else
 				return AttributeValWrapper();
 		}
-		CopyTensorToVectorChar(tensorVal, returnVal);
-		return AttributeValWrapper(returnVal);
+
+		unsigned byteStride = CopyTensorToVectorChar(tensorVal, returnVal);
+		return AttributeValWrapper(returnVal, byteStride);
 
 	}
 	/*case AttributeType::SPARSE_TENSOR:
