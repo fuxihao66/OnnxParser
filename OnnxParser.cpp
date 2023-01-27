@@ -778,23 +778,41 @@ void OnnxParser::ParseGraphInitializers() {
 		{
 			dmlTensorData.resize(weightBytes);
 			if (convertedTypeBytes == 4 && convertedTypeBytes != oriTypeBytes) { // int or uint
-				for (int i = 0; i < convertedTypeBytes / sizeof(int); i++) {
+				for (int i = 0; i < weightBytes / sizeof(int); i++) {
 					char val[4];
 					if (tensorType == TensorType::INT32) {
-						int convertedVal = static_cast<int>(*(ptr + i));
+						long long temp;
+						memcpy(&temp, ptr + 8 * i, sizeof(long long));
+						//int convertedVal = static_cast<int>(*(ptr + i));
+						int convertedVal = static_cast<int>(temp);
 						memcpy(val, &convertedVal, 4);
 					}
 					else {
-						unsigned int convertedVal = static_cast<unsigned int>(*(ptr + i));
+						//unsigned int convertedVal = static_cast<unsigned int>(*(ptr + i));
+						unsigned long long temp;
+						memcpy(&temp, ptr + 8 * i, sizeof(long long));
+						unsigned int convertedVal = static_cast<unsigned int>(temp);
 						memcpy(val, &convertedVal, 4);
 					}
-					memcpy(dmlTensorData.data() + i, val, 4);
+					memcpy(dmlTensorData.data() + 4 * i, val, 4);
 				}
 			}
 			else if (convertedTypeBytes == 2 && convertedTypeBytes != oriTypeBytes) { // float
-				for (int i = 0; i < convertedTypeBytes / sizeof(uint16_t); i++) {
-					uint16_t compressedData = Float16Compressor::compress((float)(*(ptr + i)));
-					memcpy(dmlTensorData.data() + i, &compressedData, 2);
+				for (int i = 0; i < weightBytes / sizeof(uint16_t); i++) {
+					float val;
+					if (oriTypeBytes == 8) {// double
+						double temp;
+						memcpy(&temp, ptr + 8 * i, sizeof(double));
+						val = static_cast<float>(temp);
+					}
+					else {// float
+						float temp;
+						memcpy(&temp, ptr + 4 * i, sizeof(float));
+						val = temp;
+					}
+
+					uint16_t compressedData = Float16Compressor::compress(val);
+					memcpy(dmlTensorData.data() + 2 * i, &compressedData, 2);
 				}
 			}
 			else {
