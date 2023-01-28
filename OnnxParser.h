@@ -70,10 +70,11 @@ namespace ONNX_PARSER {
 	struct ONNXPARSER_API InitializerTensorInfo : public TensorInfo {
 
 		unsigned int index; // index + modelInputNum == graph tensor index (used for binding resources at runtime)
-
+		bool referredByDml = false;
 		InitializerTensorInfo() : TensorInfo() {};
 		InitializerTensorInfo(const std::string& n, unsigned int d, TensorType t, unsigned int i);
 
+		void ReferredByDml();
 	};
 	class ONNXPARSER_API AttributeValWrapper {
 	public:
@@ -146,9 +147,11 @@ namespace ONNX_PARSER {
 	struct ONNXPARSER_API BindingInfo {
 		unsigned int stride; // all initializer data is stored in a single buffer, use stride to indicate
 		unsigned int byteSize;
-		
+		bool shouldBindData = true;
 		BindingInfo() = default;
 		BindingInfo(unsigned int s, unsigned int w);
+		bool GetShouldBind();
+		void SetShouldBind(bool b);
 	};
 
 	

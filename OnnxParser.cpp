@@ -33,13 +33,22 @@ InitializerTensorInfo::InitializerTensorInfo(const std::string& n, unsigned int 
 	: TensorInfo(n, d, t) {
 
 	index = i;
-};
+}
+void InitializerTensorInfo::ReferredByDml() {
+	referredByDml = true;
+}
+
 
 BindingInfo::BindingInfo(unsigned int s, unsigned int w) {
 	stride = s;
 	byteSize = w;
 }
-
+bool BindingInfo::GetShouldBind() {
+	return shouldBindData;
+}
+void BindingInfo::SetShouldBind(bool b) {
+	shouldBindData = b;
+}
 Op::Op() {}
 Op::~Op() {
 	delete(attriHelper);
