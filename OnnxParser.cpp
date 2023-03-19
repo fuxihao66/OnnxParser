@@ -382,13 +382,13 @@ ONNXPARSER_API unsigned int ONNX_PARSER::GetAlignedBytes(unsigned int requeiredB
 }
 
 
-OnnxParser::OnnxParser(const std::wstring& path_to_onnx) {//google::protobuf::io::FileInputStream* fileStream
+OnnxParser::OnnxParser(const wchar_t* path_to_onnx) {//google::protobuf::io::FileInputStream* fileStream
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
 	int file_descriptor;
 	_wsopen_s(
 		&file_descriptor,
-		path_to_onnx.c_str(),
+		path_to_onnx,
 		O_RDONLY | _O_SEQUENTIAL | _O_BINARY,
 		_SH_DENYWR,
 		_S_IREAD | _S_IWRITE);
@@ -957,7 +957,7 @@ ONNXPARSER_API PERROR ONNX_PARSER::ParseFromFile(const std::wstring& path_to_onn
 
 
 	//OnnxParser* parser = new OnnxParser(&stream);
-	OnnxParser* parser = new OnnxParser(path_to_onnx);
+	OnnxParser* parser = new OnnxParser(path_to_onnx.c_str());
 
 	/*auto& inputs = parser->GetInputs();
 	bindings.push_back(BindingInfo());*/
