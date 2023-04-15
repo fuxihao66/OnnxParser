@@ -16,7 +16,7 @@ int main()
 
     //ONNX_PARSER::PERROR isOk = ONNX_PARSER::ParseFromFile(L"D:/candy-9.onnx", inputMap, outputMap, graphNodes, graphInitializers, bindings, weights, opsetVersion);
 
-    ONNX_PARSER::OnnxParser* parser = new ONNX_PARSER::OnnxParser(L"D:/candy-9.onnx");
+    ONNX_PARSER::OnnxParser* parser = new ONNX_PARSER::OnnxParser(L"D:/optimized_model_opset9_fp32.onnx");
     graphInitializers = parser->GetGraphInitializers(); // error
     //std::cout << graphInitializers.size();
     outputMap = parser->GetOutputs();
@@ -33,58 +33,73 @@ int main()
     }*/
 
     //std::map<std::string, int> constantName;
-    //for (auto it = graphNodes.begin(); it != graphNodes.end(); it++) {
-    //    /*std::cout << it->first << std::endl;*/
-    //    auto& node = it->second;
-    //    
-    //    
-    //    //std::cout << node.opType << std::endl;
-
-    //    /*if (node.opType == "Pad") {
-    //        std::vector<char> tempAttri;
-
-    //        bool hasMode = node.GetAttribute("mode", ONNX_PARSER::AttributeType::STRING, tempAttri);
-    //        std::string mode;
-
-    //        if (hasMode) {
-    //            mode.resize(tempAttri.size());
-    //            memcpy((void*)(mode.data()), tempAttri.data(), tempAttri.size());
-    //        }
-
-    //    }*/
-    //    if (node.opType == "Constant") {
-    //        //std::vector<char> temp;
-    //        //std::vector<int> axes;
-    //        //ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("axes", ONNX_PARSER::AttributeType::INTS);  // ∫Õ÷Æ«∞“ª—˘£¨ªπ «‘⁄dll¿ÅEÊ∑÷≈‰¡À◊ ‘¥£¨»ª∫Û‘⁄exe¿ÅEÊ Õ∑≈¡À
-    //        //if (result != std::nullopt) {
-    //        //    //const std::vector<char>& axis = (*result);
-    //        //}
-    //        /*if (hasAxis) {
-    //            axes.resize(temp.size() / 4);
-    //            memcpy(axes.data(), temp.data(), temp.size());
-    //        }*/
-    //        constantName[node.outputName] = 1;
-    //        //std::cout << node.outputName << std::endl;
-    //    }
-    //}
     for (auto it = graphNodes.begin(); it != graphNodes.end(); it++) {
         /*std::cout << it->first << std::endl;*/
         auto& node = it->second;
+        
+        
+        //std::cout << node.opType << std::endl;
 
-        for (auto& input : node.inputNames) {
-            /*if (constantName.count(input)) {
+        /*if (node.opType == "Pad") {
+            std::vector<char> tempAttri;
 
-                std::cout << node.opType << std::endl;
-            }*/
-            if (input == "132" || input == "161") {
-                std::cout << "[";
-                for (auto& input : node.inputNames) {
-                    std::cout << input << " ";
-                }
-                std::cout << "]" << std::endl;
+            bool hasMode = node.GetAttribute("mode", ONNX_PARSER::AttributeType::STRING, tempAttri);
+            std::string mode;
+
+            if (hasMode) {
+                mode.resize(tempAttri.size());
+                memcpy((void*)(mode.data()), tempAttri.data(), tempAttri.size());
             }
+
+        }*/
+        if (node.opType == "Slice") {
+            //std::vector<char> temp;
+            //std::vector<int> axes;
+            std::vector<int> starts;
+            std::vector<int> ends;
+            {
+                ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("starts", ONNX_PARSER::AttributeType::INTS);
+                starts.resize(result.getValue().size() / 4);
+                memcpy(starts.data(), result.getValue().data(), result.getValue().size());
+            }
+            {
+                ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("ends", ONNX_PARSER::AttributeType::INTS);
+                ends.resize(result.getValue().size() / 4);
+                memcpy(ends.data(), result.getValue().data(), result.getValue().size());
+            }
+            
+                                                                                                                 
+                                                                                                                      //if (result != std::nullopt) {
+            //    //const std::vector<char>& axis = (*result);
+            //}
+            /*if (hasAxis) {
+                axes.resize(temp.size() / 4);
+                memcpy(axes.data(), temp.data(), temp.size());
+            }*/
+            //constantName[node.outputName] = 1;
+            //std::cout << node.outputName << std::endl;
         }
     }
+    //for (auto it = graphNodes.begin(); it != graphNodes.end(); it++) {
+    //    /*std::cout << it->first << std::endl;*/
+    //    auto& node = it->second;
+    //    std::cout << node.opType << std::endl;
+
+
+    //    //for (auto& input : node.inputNames) {
+    //        /*if (constantName.count(input)) {
+
+    //            std::cout << node.opType << std::endl;
+    //        }*/
+    //        /*if (input == "132" || input == "161") {
+    //            std::cout << "[";
+    //            for (auto& input : node.inputNames) {
+    //                std::cout << input << " ";
+    //            }
+    //            std::cout << "]" << std::endl;
+    //        }
+    //    }*/
+    //}
     
 
     /*for (auto it = graphInitializers.begin(); it != graphInitializers.end(); it++) {

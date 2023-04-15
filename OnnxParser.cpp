@@ -578,6 +578,29 @@ void Op::AppendAdditionAttribute(const onnx::TensorProto& attriTensor, const  st
 //
 //}
 
+std::string CreateFusedOperatorTypeName(const std::string& node_name) {
+	unsigned int plusPosition = node_name.find('+');
+	unsigned int operatorOneStartPos = 0;
+	unsigned int operatorTwoStartPos = 0;
+	for (int i = plusPosition - 1; i >= 0; i--) {
+		if (node_name[i] == '/') {
+			operatorOneStartPos = i + 1;
+			break;
+		}
+	}
+	std::string OperatorTypeOne = node_name.substr(operatorOneStartPos, plusPosition - 3 - operatorOneStartPos);
+
+	for (int i = node_name.size() - 1; i > plusPosition; i--) {
+		if (node_name[i] == '/') {
+			operatorTwoStartPos = i + 1;
+			break;
+		}
+	}
+	std::string OperatorTypeTwo = node_name.substr(operatorTwoStartPos, node_name.size() - 2 -operatorTwoStartPos);
+
+	return OperatorTypeOne + "_" + OperatorTypeTwo;
+}
+
 void OnnxParser::ParseGraphNodes() {
 	const auto& graph = model->graph();
 
@@ -608,6 +631,12 @@ void OnnxParser::ParseGraphNodes() {
 			if (op.inputNames.size() >= 3)
 				op.AppendAdditionAttribute(initializerMetaData[op.inputNames[2]], "constant_value");
 		}
+		else if (node.op_type() == "Reshape") {
+			op.AppendAdditionAttribute(initializerMetaData[op.inputNames[1]], "shape");
+		}
+		/*else if (node.op_type().find("DmlFused") == 0) {
+			op.opType = CreateFusedOperatorTypeName(node.name());
+		}*/
 		// else if (node.op_type() == "Cast"){ // need cast type 
 		// 	op.AppendAdditionAttribute(initializerMetaData[op.inputNames[1]], "target_type");
 		// }
